@@ -5,3 +5,5 @@ plotly
 google-generativeai
 python-dotenv
 torch
+scikit-learn
+statsmodels

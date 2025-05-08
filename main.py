@@ -1,5 +1,5 @@
-import os
 import streamlit as st
+import os
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
@@ -7,8 +7,9 @@ from plotly.subplots import make_subplots
 from google.generativeai import GenerativeModel
 import google.generativeai as genai
 from dotenv import load_dotenv
-load_dotenv()
 
+# --- Load environment variables ---
+load_dotenv()
 
 # --- Streamlit Config ---
 st.set_page_config(page_title="Stock Analysis & Prediction", layout="wide")
@@ -45,7 +46,7 @@ def calculate_technical_indicators(df, params):
 
 # --- Load Data ---
 @st.cache_data
-def load_stock_data(path="stock_data"):
+def load_stock_data(path="stockdata"):
     data = {}
     for fn in os.listdir(path):
         if fn.endswith('.csv'):
@@ -57,8 +58,17 @@ def load_stock_data(path="stock_data"):
 # --- LLM Feedback ---
 def get_indicator_feedback(indicator_summary: str) -> str:
     prompt = (
-        "You are a financial markets assistant. "
-        "Provide concise insight and recommendation based on these indicator values:\n" + indicator_summary
+        "You are a senior quantitative financial analyst specializing in technical indicators and market timing. "
+        "Analyze the following technical indicator values in detail and provide a clear, structured insight. "
+        "Your response must include:\n"
+        "1. Current Price Trend Analysis (based on price and moving averages)\n"
+        "2. RSI and MACD Interpretation (including momentum and possible reversal signals)\n"
+        "3. Bollinger Bands and Volume Context (volatility and confirmation)\n"
+        "4. Overall Technical Sentiment\n"
+        "5. Final Buy/Hold/Sell Recommendation (with reasoning and forward outlook)\n"
+        "Base your reasoning strictly on technical indicator behavior and recent price action. "
+        "Avoid generic explanations—give precise, market-level insights.\n\n"
+        "Technical Indicator Summary:\n" + indicator_summary
     )
     response = MODEL.generate_content(prompt)
     return response.text.strip()
@@ -111,9 +121,9 @@ def main():
     ), row=1, col=1)
 
     if enable_sma:
-        fig.add_trace(go.Scatter(x=ti['timestamp'], y=ti[f"SMA_{params['sma_window']}"] , name="SMA"), row=1, col=1)
+        fig.add_trace(go.Scatter(x=ti['timestamp'], y=ti[f"SMA_{params['sma_window']}"], name="SMA"), row=1, col=1)
     if enable_ema:
-        fig.add_trace(go.Scatter(x=ti['timestamp'], y=ti[f"EMA_{params['ema_span']}"] , name="EMA"), row=1, col=1)
+        fig.add_trace(go.Scatter(x=ti['timestamp'], y=ti[f"EMA_{params['ema_span']}"], name="EMA"), row=1, col=1)
     if enable_bb:
         fig.add_trace(go.Scatter(x=ti['timestamp'], y=ti['Upper_Band'], name="Upper BB", line=dict(dash='dash')), row=1, col=1)
         fig.add_trace(go.Scatter(x=ti['timestamp'], y=ti['Lower_Band'], name="Lower BB", line=dict(dash='dash')), row=1, col=1)
@@ -141,17 +151,18 @@ def main():
         if enable_sma:
             sma_col = f"SMA_{params['sma_window']}"
             summary += f"Latest SMA: {ti[sma_col].iloc[-1]:.2f}\n"
-
-
         if enable_ema:
             ema_col = f"EMA_{params['ema_span']}"
             summary += f"Latest EMA: {ti[ema_col].iloc[-1]:.2f}\n"
-
         if enable_bb:
             summary += f"Latest Bollinger Bands: Upper {ti['Upper_Band'].iloc[-1]:.2f}, Lower {ti['Lower_Band'].iloc[-1]:.2f}"
         feedback = get_indicator_feedback(summary)
         st.subheader("LLM Insights & Recommendations")
         st.write(feedback)
+
+    # Navigation to prediction page
+    if st.sidebar.button("Go to Prediction Page 📈"):
+        st.switch_page("pages/predict.py")
 
 if __name__ == "__main__":
     main()

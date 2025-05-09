@@ -7,4 +7,3 @@ python-dotenv
 torch
 scikit-learn
 statsmodels
-talib

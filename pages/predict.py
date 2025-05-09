@@ -11,9 +11,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 from statsmodels.tsa.arima.model import ARIMA
 import google.generativeai as genai
 
-# Optional: Uncomment and install if missing
-# !pip install ta-lib shap
-import talib
+
 
 # --- Streamlit Config ---
 st.set_page_config(page_title="📈 Advanced Stock Predictor", layout="wide")
@@ -60,12 +58,7 @@ def load_stock_data(path="stockdata"):
             data[name] = df
     return data
 
-@st.cache_data
-def compute_indicators(df):
-    df['RSI'] = talib.RSI(df['close'], timeperiod=14)
-    df['ATR'] = talib.ATR(df['high'], df['low'], df['close'], timeperiod=14)
-    df['OBV'] = talib.OBV(df['close'], df['volume'])
-    return df.dropna()
+
 
 @st.cache_data
 def create_sequences(data, seq_length):

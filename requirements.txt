@@ -7,3 +7,4 @@ python-dotenv
 torch
 scikit-learn
 statsmodels
+yfinance

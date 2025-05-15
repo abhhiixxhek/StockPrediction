@@ -35,24 +35,34 @@ class AttnLSTM(nn.Module):
             nn.ReLU(),
             nn.Linear(64, 1)
         )
-
     def forward(self, x):
-        out, _ = self.lstm(x)               # (batch, seq_len, hidden)
-        scores = self.attn(out[:, -1, :])   # (batch, seq_len)
-        weights = torch.softmax(scores, dim=1).unsqueeze(1)  # (batch,1,seq_len)
-        context = torch.bmm(weights, out).squeeze(1)         # (batch, hidden)
+        out, _ = self.lstm(x)
+        scores = self.attn(out[:, -1, :])
+        weights = torch.softmax(scores, dim=1).unsqueeze(1)
+        context = torch.bmm(weights, out).squeeze(1)
         context = self.dropout(context)
         return self.fc(context)
 
 # --- Utility Functions ---
 @st.cache_data
-def load_stock_data(path="stockdata"):
+def load_stock_data(path="yahoostockdata"):
     data = {}
     for fn in os.listdir(path):
         if fn.endswith('.csv'):
             name = fn[:-4]
-            df = pd.read_csv(os.path.join(path, fn), parse_dates=['timestamp'])
-            df.sort_values('timestamp', inplace=True)
+            df = pd.read_csv(os.path.join(path, fn), parse_dates=[0])
+            # normalize column names to lowercase
+            df.columns = [c.lower() for c in df.columns]
+            # expected: date, open, high, low, close, volume
+            if 'date' in df.columns:
+                df = df.rename(columns={'date': 'date_col'})
+            else:
+                df['date_col'] = df.index
+            df = df.rename(columns={
+                'open': 'open', 'high': 'high', 'low': 'low',
+                'close': 'close', 'volume': 'volume'
+            })
+            df.sort_values('date_col', inplace=True)
             data[name] = df
     return data
 
@@ -61,7 +71,7 @@ def create_sequences(data, seq_length):
     xs, ys = [], []
     for i in range(len(data) - seq_length):
         xs.append(data[i:i+seq_length])
-        ys.append(data[i+seq_length, 0])  # predict close price
+        ys.append(data[i+seq_length, 0])
     return np.array(xs), np.array(ys)
 
 @st.cache_data
@@ -73,52 +83,44 @@ def generate_insight(actual, forecast):
         f"Predicted price: ₹{forecast[-1]:.2f}. "
         "Give a short, practical trading insight for a retail investor based on this movement."
     )
-    response = MODEL.generate_content(prompt)
-    return response.text
+    return MODEL.generate_content(prompt).text
 
 # --- Streamlit UI ---
-st.title("📈 Advanced Stock Prediction with LSTM+ARIMA with AI Insights")
+st.title("📈 Advanced Stock Prediction with LSTM+ARIMA and AI Insights")
 
-# Load stock data
 data_dict = load_stock_data()
 stock_list = list(data_dict.keys())
 stock_name = st.sidebar.selectbox("Select Stock", stock_list)
 
-# Model settings
 with st.sidebar.expander("Model & Training Settings"):
-    SEQ_LEN   = st.number_input("Sequence Length", min_value=10, max_value=200, value=60)
-    BATCH_SIZE= st.number_input("Batch Size",    min_value=8,  max_value=128, value=32)
-    EPOCHS    = st.number_input("Epochs",        min_value=10, max_value=500, value=10)
-    LR        = st.number_input("Learning Rate", format="%.5f", value=0.001)
-    TRAIN_SPLIT = st.slider("Train/Test Split (%)", 50, 90, 80)
+    SEQ_LEN    = st.number_input("Sequence Length", 10, 200, 60)
+    BATCH_SIZE = st.number_input("Batch Size", 8, 128, 32)
+    EPOCHS     = st.number_input("Epochs", 10, 500, 10)
+    LR         = st.number_input("Learning Rate", format="%.5f", value=0.001)
+    TRAIN_SPLIT= st.slider("Train/Test Split (%)", 50, 90, 80)
 
-# Prediction
 if st.button("Run Prediction 🚀"):
     progress = st.progress(0)
 
-    # 1. Prepare data
     df_raw = data_dict[stock_name].copy()
-    df = df_raw[['timestamp','open','high','low','close','volume']].copy()
-    df.set_index('timestamp', inplace=True)
-    features = df[['close']].values
+    # use lowercase names
+    df = df_raw[['date_col', 'close']].copy()
+    df.set_index('date_col', inplace=True)
+    features = df.values  # shape (n,1)
 
-    # 2. Scale
     scaler = MinMaxScaler()
     scaled = scaler.fit_transform(features)
 
-    # 3. Sequence generation
     X, y = create_sequences(scaled, SEQ_LEN)
-    split = int(len(X)*TRAIN_SPLIT/100)
+    split = int(len(X) * TRAIN_SPLIT / 100)
     X_train, y_train = X[:split], y[:split]
     X_test,  y_test  = X[split:], y[split:]
 
-    # 4. Tensors
     X_train_t = torch.tensor(X_train).float().to(DEVICE)
     y_train_t = torch.tensor(y_train).float().unsqueeze(1).to(DEVICE)
-    train_loader = DataLoader(TensorDataset(X_train_t,y_train_t), batch_size=BATCH_SIZE, shuffle=True)
+    train_loader = DataLoader(TensorDataset(X_train_t, y_train_t), batch_size=BATCH_SIZE, shuffle=True)
 
-    # 5. Train model
-    model = AttnLSTM(input_size=X.shape[2], seq_length=SEQ_LEN).to(DEVICE)
+    model = AttnLSTM(input_size=1, seq_length=SEQ_LEN).to(DEVICE)
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5)
@@ -134,44 +136,37 @@ if st.button("Run Prediction 🚀"):
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
-        avg = total_loss/len(train_loader)
+        avg = total_loss / len(train_loader)
         scheduler.step(avg)
         if avg < best_loss:
             best_loss = avg
             torch.save(model.state_dict(), 'best_model.pt')
         if epoch % 10 == 0:
             st.write(f"Epoch {epoch}/{EPOCHS} — Loss: {avg:.6f}")
-        progress.progress(int(epoch/EPOCHS*100))
+        progress.progress(int(epoch / EPOCHS * 100))
 
     model.load_state_dict(torch.load('best_model.pt'))
-
-    # 6. Predict
     model.eval()
     with torch.no_grad():
         X_all = torch.tensor(X).float().to(DEVICE)
         lstm_preds = model(X_all).cpu().numpy().flatten()
+
     lstm_rescaled = scaler.inverse_transform(
-        np.concatenate([lstm_preds.reshape(-1,1),
-                        np.zeros((len(lstm_preds), X.shape[2]-1))], axis=1)
+        np.concatenate([lstm_preds.reshape(-1,1), np.zeros((len(lstm_preds),0))], axis=1)
     )[:,0]
     actual = scaler.inverse_transform(
-        np.concatenate([y.reshape(-1,1),
-                        np.zeros((len(y), X.shape[2]-1))],axis=1)
+        np.concatenate([y.reshape(-1,1), np.zeros((len(y),0))], axis=1)
     )[:,0]
 
-    # 7. ARIMA on residuals
     residuals = actual - lstm_rescaled
     train_res, test_res = residuals[:split], residuals[split:]
     arima_fit = ARIMA(train_res, order=(2,0,2)).fit()
     arima_forecast = arima_fit.forecast(steps=len(test_res))
     hybrid = lstm_rescaled[-len(test_res):] + arima_forecast
 
-    # 8. Results
     idx = df.index[-len(test_res):]
-    result = pd.DataFrame({'Actual': actual[-len(test_res):],
-                           'Hybrid': hybrid}, index=idx)
+    result = pd.DataFrame({'Actual': actual[-len(test_res):], 'Hybrid': hybrid}, index=idx)
 
-    # 9. Metrics & Plot
     rmse = np.sqrt(mean_squared_error(result['Actual'], result['Hybrid']))
     mae  = mean_absolute_error(result['Actual'], result['Hybrid'])
 
@@ -181,15 +176,12 @@ if st.button("Run Prediction 🚀"):
     c1.metric("RMSE", f"{rmse:.2f}")
     c2.metric("MAE",  f"{mae:.2f}")
 
-    # 10. Download
     csv = result.to_csv().encode()
     st.download_button("Download Predictions", csv, "predictions.csv", "text/csv")
 
-    # 11. AI Insight
     insight = generate_insight(result['Actual'].values, result['Hybrid'].values)
     st.subheader("AI - Insights")
     st.markdown(insight)
 
-# Optional back button
 if st.sidebar.button("🔙 Back to Analysis"):
     st.switch_page("main.py")

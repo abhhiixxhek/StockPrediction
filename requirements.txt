@@ -8,3 +8,4 @@ torch
 scikit-learn
 statsmodels
 yfinance
+ta

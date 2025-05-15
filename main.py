@@ -30,7 +30,7 @@ def fetch_top50_nse() -> list[str]:
     data = resp.json().get('data', [])
     return [item['symbol'] + '.NS' for item in data]
 
-def fetch_and_store(symbols: list[str], start_date: str, output_dir: str = "stockdata"):
+def fetch_and_store(symbols: list[str], start_date: str, output_dir: str = "yahoostockdata"):
     os.makedirs(output_dir, exist_ok=True)
     for sym in symbols:
         try:
@@ -61,12 +61,12 @@ def load_stock_data(start_date: str):
     if cutoff.tzinfo is not None:
         cutoff = cutoff.tz_localize(None)
 
-    for fn in os.listdir("stockdata"):
+    for fn in os.listdir("yahoostockdata"):
         if not fn.lower().endswith(".csv"):
             continue
 
         symbol = fn.replace(".csv", "")
-        path = os.path.join("stockdata", fn)
+        path = os.path.join("yahoostockdata", fn)
         try:
             df = pd.read_csv(path)
         except:

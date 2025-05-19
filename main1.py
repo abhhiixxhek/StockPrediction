@@ -192,17 +192,17 @@ def main():
         st.sidebar.markdown("**No local data yet.**")
 
     # Refresh button
-    # if st.sidebar.button("🔄 Refresh Stock Data"):
-    #     with st.spinner("Fetching data..."):
-    #         refresh_stock_data()
-    #     all_data = load_stock_data(start)
-    #     latest_dates = [df["timestamp"].max() for df in all_data.values()]
-    #     overall_latest = max(latest_dates)
-    #     st.sidebar.markdown(f"**Latest data in DB:** {overall_latest.date()}")
+    if st.sidebar.button("🔄 Refresh Stock Data"):
+        with st.spinner("Fetching data..."):
+            refresh_stock_data()
+        all_data = load_stock_data(start)
+        latest_dates = [df["timestamp"].max() for df in all_data.values()]
+        overall_latest = max(latest_dates)
+        st.sidebar.markdown(f"**Latest data in DB:** {overall_latest.date()}")
 
-    # if not all_data:
-    #     st.error("No data available—please refresh.")
-    #     return
+    if not all_data:
+        st.error("No data available—please refresh.")
+        return
 
     # Select symbol & date range
     sym = st.sidebar.selectbox("Select Stock", sorted(all_data))

@@ -179,6 +179,16 @@ def get_indicator_feedback(ind_sum, plot_sum):
 def main():
     st.sidebar.title("Navigation")
 
+    # Introductory blurb
+    st.markdown(
+        """
+        **Ready to Level Up Your Portfolio?**  
+        Welcome to your next-generation stock lab, where we harness five years of NSE-50 price history,
+        and apply cutting-edge deep learning to forecast movements before they happen. Then, to seal the deal, we've enlisted Google's Gemini-2.0-Flash model as your personal quant guru—melding raw data with AI intuition to give you clear Buy/Hold/Sell signals and forward-looking commentary. Strap in, because we're not here to play small;
+        we are here to turbo charge your trades.
+        """
+    )
+
     # Load existing data
     start = get_three_years_ago_date()
     all_data = load_stock_data(start)
@@ -190,19 +200,6 @@ def main():
         st.sidebar.markdown(f"**Latest data in DB:** {overall_latest.date()}")
     else:
         st.sidebar.markdown("**No local data yet.**")
-
-    # Refresh button
-    # if st.sidebar.button("🔄 Refresh Stock Data"):
-    #     with st.spinner("Fetching data..."):
-    #         refresh_stock_data()
-    #     all_data = load_stock_data(start)
-    #     latest_dates = [df["timestamp"].max() for df in all_data.values()]
-    #     overall_latest = max(latest_dates)
-    #     st.sidebar.markdown(f"**Latest data in DB:** {overall_latest.date()}")
-
-    # if not all_data:
-    #     st.error("No data available—please refresh.")
-    #     return
 
     # Select symbol & date range
     sym = st.sidebar.selectbox("Select Stock", sorted(all_data))

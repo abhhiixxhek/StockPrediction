@@ -239,8 +239,8 @@ def main():
 
     # Historical Data Preview
     st.subheader("Historical Data Preview")
-    df_preview = df.drop(columns=["Dividends", "Stock Splits", "timestamp"], errors="ignore")
-    st.dataframe(df_preview.tail(10), use_container_width=True, height=300)
+    df_preview = df.drop(columns=["Dividends", "Stock Splits"], errors="ignore")
+    st.dataframe(df_preview.tail(20), use_container_width=True, height=300)
 
     # Technical indicators
     ti = calculate_technical_indicators(df, params)

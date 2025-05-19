@@ -98,6 +98,7 @@ with st.sidebar.expander("Model & Training Settings"):
 
 # Prepare dataframe and indicators
 df = data_dict[stock_name].copy()
+df = df[df.index >= df.index.max() - timedelta(days=365)]   # ← train on last 1 year only
 df['EMA_50']  = df['close'].ewm(span=50).mean()
 df['EMA_200'] = df['close'].ewm(span=200).mean()
 df['RSI']     = ta.momentum.RSIIndicator(df['close'], window=14).rsi()

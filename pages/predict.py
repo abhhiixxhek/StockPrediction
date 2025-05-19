@@ -55,9 +55,9 @@ def load_stock_data(path="yahoostockdata"):
             name = fn[:-4]
             df = pd.read_csv(os.path.join(path, fn), parse_dates=[0])
             df.columns = [c.lower() for c in df.columns]
-            df.rename(columns={'date': 'date_col'}, inplace=True)
-            df.sort_values('date_col', inplace=True)
-            df.set_index('date_col', inplace=True)
+            # df.rename(columns={'date': 'date_col'}, inplace=True)
+            df.sort_values('timestamp', inplace=True)
+            df.set_index('timestamp', inplace=True)
             data[name] = df
     return data
 

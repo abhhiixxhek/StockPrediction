@@ -1,3 +1,5 @@
+###THIS IS FOR REFRESHING STOCK DATA FROM YAHOO FINANCE.
+
 import os
 import time
 import requests

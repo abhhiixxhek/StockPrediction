@@ -57,8 +57,8 @@ Follow these steps to set up and run the project:
 
 1.  **Clone the Repository:**
     ```bash
-    git clone <repository-url>
-    cd <repository-directory>
+    git clone https://github.com/abhhiixxhek/StockPrediction.git
+    cd StockPrediction
     ```
 
 2.  **Create and Activate Virtual Environment:**
@@ -96,7 +96,7 @@ Follow these steps to set up and run the project:
     ```bash
     streamlit run main1.py
     ```
-    Open your browser and navigate to the provided local URL. Use the "Refresh Stock Data" button in the sidebar.
+    Open your browser and navigate to the provided local URL. Use the "Refresh Stock Data" if needed button in the sidebar.
 
 6.  **Run the Main Application:**
     Once the data is populated, you can run the main stock analysis application:
@@ -107,10 +107,3 @@ Follow these steps to set up and run the project:
 
 7.  **Access Prediction Page:**
     The application may have a separate page for predictions. If running, it's typically accessible via a navigation menu provided by Streamlit when multiple pages are present in the `pages` directory.
-
-## A Note on Data
-
-*   The application is primarily designed to work with historical data for the NIFTY 50 stocks, sourced from Yahoo Finance.
-*   The `main1.py` script is responsible for fetching and refreshing this data. It stores the data in CSV files within the `yahoostockdata/` directory.
-*   It is recommended to run `main1.py` periodically to keep the local data store up-to-date for accurate analysis.
-*   The date range for data fetching in `main1.py` is set to the last 5 years.
